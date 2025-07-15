@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Validação de OS - Age Fibra</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --primary-dark: #D45A00;
+            --secondary: #2C3E50;
+            --light: #FFF8F2;
+            --gray: #F5F5F5;
+            --dark: #333;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --border: #E0E0E0;
+            --info: #17a2b8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #FFF8F2, #FFEDE0);
+            color: var(--dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-bottom: 4px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .logo i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+        
+        h1 {
+            color: var(--primary-dark);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            position: relative;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-dark);
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+        }
+        
+        .section-title i {
+            font-size: 1.5rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .required::after {
+            content: " *";
+            color: var(--danger);
+        }
+        
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
+        }
+        
+        select:disabled {
+            background-color: #f9f9f9;
+            cursor: not-allowed;
+        }
+        
+        .validation-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #FFFCF9;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+            opacity: 0.5;
+            max-height: 60px;
+            overflow: hidden;
+        }
+        
+        .validation-item.active {
+            opacity: 1;
+            max-height: 300px;
+            background-color: white;
+            border-left: 4px solid var(--success);
+        }
+        
+        .validation-item.completed {
+            border-left: 4px solid var(--primary);
+        }
+        
+        .validation-item:hover {
+            background-color: var(--light);
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .radio-option input {
+            width: auto;
+        }
+        
+        .validation-text {
+            flex: 1;
+        }
+        
+        .validation-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .comment-field {
+            margin-top: 10px;
+        }
+        
+        .comment-field input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .status-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-top: 30px;
+        }
+        
+        .status-option {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 40px auto 20px;
+            box-shadow: 0 4px 10px rgba(255, 107, 0, 0.3);
+        }
+        
+        .btn-whatsapp {
+            background: linear-gradient(to right, #25D366, #128C7E);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
+        }
+        
+        .btn-submit:hover, .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 107, 0, 0.4);
+        }
+        
+        .btn-submit:active, .btn-whatsapp:active {
+            transform: translateY(0);
+        }
+        
+        .btn-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 20px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .step {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #E0E0E0;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active {
+            background-color: var(--primary);
+            transform: scale(1.3);
+        }
+        
+        .firebase-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .firebase-status.connected {
+            color: var(--success);
+        }
+        
+        .firebase-status.disconnected {
+            color: var(--danger);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 300px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .notification.info {
+            border-left: 4px solid var(--info);
+        }
+        
+        .statistics {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 10px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .connection-panel {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .connection-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-connected {
+            background-color: var(--success);
+        }
+        
+        .status-disconnected {
+            background-color: var(--danger);
+        }
+        
+        .connection-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .error-message {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .firebase-config {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .config-key {
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+        
+        .config-value {
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .config-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+        
+        .last-orders {
+            margin-top: 30px;
+        }
+        
+        .last-orders h3 {
+            color: var(--primary-dark);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .last-orders h3 i {
+            font-size: 1.3rem;
+        }
+        
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .orders-table th {
+            background-color: var(--primary);
+            color: white;
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+        
+        .orders-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .orders-table tr:nth-child(even) {
+            background-color: var(--light);
+        }
+        
+        .orders-table tr:hover {
+            background-color: rgba(255, 107, 0, 0.05);
+        }
+        
+        .status-approved {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .status-rejected {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        
+        .export-btn {
+            background: linear-gradient(to right, var(--secondary), #1a2a3a);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3);
+        }
+        
+        .rejection-reason {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--light);
+        }
+        
+        .rejection-reason.active {
+            display: block;
+        }
+        
+        .delete-btn {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background-color: var(--primary);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+        
+        .questions-counter {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .form-section {
+                padding: 20px;
+            }
+            
+            .radio-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .statistics {
+                flex-direction: column;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .firebase-status {
+                position: relative;
+                top: 0;
+                right: 0;
+                justify-content: center;
+                margin-top: 10px;
+            }
+            
+            .orders-table {
+                font-size: 0.85rem;
+            }
+            
+            .orders-table th,
+            .orders-table td {
+                padding: 8px 10px;
+            }
+            
+            .btn-submit, .btn-whatsapp {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-clipboard-check"></i>
+                <div>
+                    <h1>Validação de Ordens de Serviço</h1>
+                    <p class="subtitle">Sistema para validação e controle de qualidade - Age Fibra</p>
+                </div>
+            </div>
+            <div id="firebaseStatus" class="firebase-status disconnected">
+                <i class="fas fa-circle"></i> <span>Firebase: Verificando conexão...</span>
+            </div>
+        </header>
+        
+        <div class="notification" id="notification">
+            <i class="fas fa-check-circle"></i>
+            <div class="notification-content">Notificação</div>
+        </div>
+        
+        <div class="statistics" id="statistics">
+            <div class="stat-card">
+                <div class="stat-value" id="totalOS">0</div>
+                <div class="stat-label">Total de OS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="approvedOS">0</div>
+                <div class="stat-label">OS Aprovadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="rejectedOS">0</div>
+                <div class="stat-label">OS Reprovadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="todayOS">0</div>
+                <div class="stat-label">OS Hoje</div>
+            </div>
+        </div>
+        
+        <main>
+            <div class="step-indicator">
+                <div class="step active"></div>
+                <div class="step"></div>
+                <div class="step"></div>
+                <div class="step"></div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-user"></i>
+                    <h2>Informações da Ordem de Serviço</h2>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="operator" class="required">Operador</label>
+                        <select id="operator" required>
+                            <option value="">Selecione um operador</option>
+                            <option>Camila Brito Pereira</option>
+                            <option>João Victor Borges Lima</option>
+                            <option>Marcos Barros de Oliveira</option>
+                            <option>Davi Soares de Sa</option>
+                            <option>Ricardo Rodrigues Lima</option>
+                            <option>Helena Bispo da Silva</option>
+                            <option>Eline Vieira Geronimo de Paulo</option>
+                            <option>Juliane Miranda de Araújo</option>
+                            <option>Luciene Sousa da Silva</option>
+                            <option>Raylane Stefany Silva da Costa</option>
+                            <option>Robson de Oliveira Silva</option>
+                            <option>Barbara Hyad Nunes Siqueira</option>
+                            <option>Vicktoria Goncalves Freire Motta</option>
+                            <option>Ana Paula Alves Lima</option>
+                            <option>Laura Borges Lima</option>
+                            <option>Marcio Vinicus</option>
+                            <option>Tamara Laura Sousa Soares</option>
+                            <option>Kaline Morais dos Santos</option>
+                            <option>Thayene dos santos ferreira</option>
+                            <option>Felipe Junior</option>
+                            <option>Barbara Silva dos Santos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="supervisor" class="required">Supervisor</label>
+                        <select id="supervisor" required>
+                            <option value="">Selecione um supervisor</option>
+                            <option selected>Washington Melo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="technician" class="required">Técnico</label>
+                        <select id="technician" required>
+                            <option value="">Selecione um técnico</option>
+                            <option>BRUNO HENRIQUE SANTOS DE LIMA</option>
+                            <option>DAVID ICARO PEREIRA BARROS</option>
+                            <option>GEOVANY DEZIDERIO ROCHA</option>
+                            <option>GUILHERME RODRIGUES BEZERRA</option>
+                            <option>MABIO DA CONCEIÇÃO O. RIBEIRO</option>
+                            <option>MARCOS HENRIQUE VELOSO</option>
+                            <option>PHILIPE DA SILVA BARROS</option>
+                            <option>WAGNER RODRIGUES UCHOA</option>
+                            <option>WALLESSON MATHEUS RIBEIRO ARAUJO</option>
+                            <option>WARLEY MARTINS NASCIMENTO</option>
+                            <option>SAVIO FERREIRA DE MELO</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="client" class="required">Nome Completo do Cliente</label>
+                        <input type="text" id="client" placeholder="Digite o nome completo do cliente" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="service-type" class="required">Tipo de Ordem de Serviço</label>
+                        <select id="service-type" required disabled>
+                            <option value="">Selecione o tipo de serviço</option>
+                            <option>ATIVAÇÃO</option>
+                            <option>Mudança de endereço</option>
+                            <option>Visita Técnica</option>
+                            <option>Upgrade Mesh</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-tasks"></i>
+                    <h2>Validação Técnica</h2>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="questions-counter" id="questionsCounter">0/8 perguntas respondidas</div>
+                
+                <div class="validation-item active" id="question-1">
+                    <div class="validation-text">
+                        <div class="validation-title">1. Fotos obrigatórias inseridas no Vtasks?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="photos-yes" name="photos" value="sim" required>
+                                <label for="photos-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="photos-no" name="photos" value="nao" required>
+                                <label for="photos-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="photos-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-2">
+                    <div class="validation-text">
+                        <div class="validation-title">2. Vídeo avaliado e de acordo com a qualidade Age Fibra?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="video-yes" name="video" value="sim" required>
+                                <label for="video-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="video-no" name="video" value="nao" required>
+                                <label for="video-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="video-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-3">
+                    <div class="validation-text">
+                        <div class="validation-title">3. Foram realizados testes em sites?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="sites-yes" name="sites" value="sim" required>
+                                <label for="sites-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="sites-no" name="sites" value="nao" required>
+                                <label for="sites-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="sites-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-4">
+                    <div class="validation-text">
+                        <div class="validation-title">4. Foram realizados testes em aplicativos?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="apps-yes" name="apps" value="sim" required>
+                                <label for="apps-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="apps-no" name="apps" value="nao" required>
+                                <label for="apps-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="apps-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-5">
+                    <div class="validation-text">
+                        <div class="validation-title">5. Cliente foi orientado quanto às redes 2.4 GHz e 5 GHz e cabo?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="orientation-yes" name="orientation" value="sim" required>
+                                <label for="orientation-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="orientation-no" name="orientation" value="nao" required>
+                                <label for="orientation-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="orientation-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-6">
+                    <div class="validation-text">
+                        <div class="validation-title">6. Ambiente ficou limpo e organizado?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="clean-yes" name="clean" value="sim" required>
+                                <label for="clean-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="clean-no" name="clean" value="nao" required>
+                                <label for="clean-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="clean-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-7">
+                    <div class="validation-text">
+                        <div class="validation-title">7. Técnico deixou contato corporativo do cliente?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="contact-yes" name="contact" value="sim" required>
+                                <label for="contact-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="contact-no" name="contact" value="nao" required>
+                                <label for="contact-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="contact-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="validation-item" id="question-8">
+                    <div class="validation-text">
+                        <div class="validation-title">8. Todas as dúvidas do cliente foram sanadas?</div>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="doubts-yes" name="doubts" value="sim" required>
+                                <label for="doubts-yes">Sim</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="doubts-no" name="doubts" value="nao" required>
+                                <label for="doubts-no">Não</label>
+                            </div>
+                        </div>
+                        <div class="comment-field">
+                            <input type="text" id="doubts-comment" placeholder="Comentários (opcional)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h2>Resultado da Validação</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="validation" class="required">Validação</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="approved" name="validation" value="approved" required>
+                            <label for="approved">Aprovada</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="rejected" name="validation" value="rejected" required>
+                            <label for="rejected">Reprovada</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="observations">Observações</label>
+                    <textarea id="observations" rows="4" placeholder="Digite observações relevantes sobre a validação"></textarea>
+                </div>
+                
+                <div class="rejection-reason" id="rejectionReason">
+                    <div class="form-group">
+                        <label for="rejection-details" class="required">Motivo da Reprovação</label>
+                        <textarea id="rejection-details" rows="3" placeholder="Descreva detalhadamente o motivo da reprovação" required></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-submit" id="submitBtn">
+                <i class="fas fa-check-circle"></i> Validar Ordem de Serviço
+            </button>
+            
+            <button class="btn-whatsapp" id="whatsappBtn">
+                <i class="fab fa-whatsapp"></i> Enviar por WhatsApp
+            </button>
+            
+            <div class="last-orders">
+                <h3><i class="fas fa-history"></i> Últimas 5 Ordens Validadas</h3>
+                <div id="ordersTableContainer">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Operador</th>
+                                <th>Técnico</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Carregando dados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button class="export-btn" id="exportBtn">
+                    <i class="fas fa-file-excel"></i> Exportar para Excel
+                </button>
+            </div>
+            
+            <div class="connection-panel">
+                <div class="connection-header">
+                    <h3>Configuração do Firebase</h3>
+                    <div class="connection-status">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="connectionStatusText">Verificando...</span>
+                    </div>
+                </div>
+                
+                <div class="firebase-config">
+                    <div class="config-title">Configuração Atual:</div>
+                    <div class="config-key">apiKey:</div>
+                    <div class="config-value">AIzaSyBwTvjKbFP3AIyEhlihsf7VDtafjxAvM24</div>
+                    
+                    <div class="config-key">authDomain:</div>
+                    <div class="config-value">validaage.firebaseapp.com</div>
+                    
+                    <div class="config-key">projectId:</div>
+                    <div class="config-value">validaage</div>
+                    
+                    <div class="config-key">storageBucket:</div>
+                    <div class="config-value">validaage.appspot.com</div>
+                    
+                    <div class="config-key">messagingSenderId:</div>
+                    <div class="config-value">654383800536</div>
+                    
+                    <div class="config-key">appId:</div>
+                    <div class="config-value">1:654383800536:web:1d247bb420b1f91dea77ad</div>
+                    
+                    <div class="config-key">measurementId:</div>
+                    <div class="config-value">G-CWSFTXQ3T2</div>
+                </div>
+                
+                <div class="error-message" id="firebaseError"></div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="retryBtn">
+                        <i class="fas fa-sync-alt"></i> Tentar Reconexão
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Sistema de Validação de OS - Age Fibra | Desenvolvido com <i class="fas fa-heart" style="color: var(--primary);"></i> para qualidade do atendimento</p>
+            <p>© 2023 Todos os direitos reservados</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Configuração do Firebase fornecida
+        const firebaseConfig = {
+            apiKey: "AIzaSyBwTvjKbFP3AIyEhlihsf7VDtafjxAvM24",
+            authDomain: "validaage.firebaseapp.com",
+            projectId: "validaage",
+            storageBucket: "validaage.appspot.com",
+            messagingSenderId: "654383800536",
+            appId: "1:654383800536:web:1d247bb420b1f91dea77ad",
+            measurementId: "G-CWSFTXQ3T2"
+        };
+
+        // Elementos da interface
+        const firebaseStatus = document.getElementById('firebaseStatus');
+        const statusDot = document.getElementById('statusDot');
+        const connectionStatusText = document.getElementById('connectionStatusText');
+        const firebaseError = document.getElementById('firebaseError');
+        const notification = document.getElementById('notification');
+        const notificationContent = document.querySelector('.notification-content');
+        const submitBtn = document.getElementById('submitBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const whatsappBtn = document.getElementById('whatsappBtn');
+        const progressBar = document.getElementById('progressBar');
+        const questionsCounter = document.getElementById('questionsCounter');
+        
+        // Elementos de estatísticas
+        const totalOS = document.getElementById('totalOS');
+        const approvedOS = document.getElementById('approvedOS');
+        const rejectedOS = document.getElementById('rejectedOS');
+        const todayOS = document.getElementById('todayOS');
+        
+        // Elementos da tabela de últimas ordens
+        const ordersTableBody = document.getElementById('ordersTableBody');
+        
+        // Elementos para sequência de perguntas
+        const questions = document.querySelectorAll('.validation-item');
+        const rejectionReason = document.getElementById('rejectionReason');
+        const rejectionDetails = document.getElementById('rejection-details');
+        
+        // Variáveis globais
+        let db;
+        let analytics;
+        let firebaseConnected = false;
+        let orders = [];
+        let currentQuestion = 1;
+        let answeredQuestions = 0;
+        
+        // Atualizar status do Firebase
+        function updateFirebaseStatus(connected, message = "") {
+            firebaseConnected = connected;
+            
+            if (connected) {
+                firebaseStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Firebase: Conectado</span>';
+                firebaseStatus.classList.remove('disconnected');
+                firebaseStatus.classList.add('connected');
+                
+                statusDot.className = 'status-dot status-connected';
+                connectionStatusText.textContent = 'Conectado';
+                firebaseError.textContent = '';
+                
+                showNotification('Conexão com Firebase estabelecida com sucesso!', true);
+            } else {
+                firebaseStatus.innerHTML = '<i class="fas fa-circle"></i> <span>Firebase: Desconectado</span>';
+                firebaseStatus.classList.remove('connected');
+                firebaseStatus.classList.add('disconnected');
+                
+                statusDot.className = 'status-dot status-disconnected';
+                connectionStatusText.textContent = 'Desconectado';
+                firebaseError.textContent = message || 'Erro na conexão com Firebase';
+                
+                showNotification(message || 'Erro na conexão com Firebase', false);
+            }
+        }
+        
+        // Mostrar notificação
+        function showNotification(message, isSuccess = true) {
+            notificationContent.textContent = message;
+            
+            // Definir ícone e classe apropriada
+            if (isSuccess) {
+                notification.innerHTML = '<i class="fas fa-check-circle"></i> ' + notificationContent.outerHTML;
+                notification.className = 'notification success show';
+            } else {
+                notification.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + notificationContent.outerHTML;
+                notification.className = 'notification error show';
+            }
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Carregar estatísticas e últimas ordens
+        async function loadStatisticsAndOrders() {
+            try {
+                // Buscar todas as ordens (para estatísticas)
+                const allOrdersSnapshot = await db.collection("ordens_servico").get();
+                orders = [];
+                allOrdersSnapshot.forEach(doc => {
+                    orders.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                // Atualizar estatísticas
+                totalOS.textContent = orders.length;
+                approvedOS.textContent = orders.filter(order => order.result === 'approved').length;
+                rejectedOS.textContent = orders.filter(order => order.result === 'rejected').length;
+                
+                // Ordenar por data (mais recentes primeiro)
+                const sortedOrders = [...orders].sort((a, b) => 
+                    b.timestamp.toDate().getTime() - a.timestamp.toDate().getTime()
+                );
+                
+                // Pegar as últimas 5
+                const last5Orders = sortedOrders.slice(0, 5);
+                
+                // Atualizar tabela
+                ordersTableBody.innerHTML = '';
+                
+                if (last5Orders.length === 0) {
+                    ordersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center;">Nenhuma ordem validada ainda</td>
+                        </tr>
+                    `;
+                } else {
+                    last5Orders.forEach(order => {
+                        const date = order.timestamp.toDate();
+                        const formattedDate = date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR');
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${formattedDate}</td>
+                            <td>${order.operator}</td>
+                            <td>${order.technician}</td>
+                            <td>${order.client}</td>
+                            <td class="${order.result === 'approved' ? 'status-approved' : 'status-rejected'}">
+                                ${order.result === 'approved' ? 'Aprovada' : 'Reprovada'}
+                            </td>
+                            <td>
+                                <button class="delete-btn" data-id="${order.id}">
+                                    <i class="fas fa-trash"></i> Excluir
+                                </button>
+                            </td>
+                        `;
+                        ordersTableBody.appendChild(row);
+                    });
+                    
+                    // Adicionar eventos aos botões de exclusão
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const orderId = this.getAttribute('data-id');
+                            deleteOrder(orderId);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao carregar dados:", error);
+                showNotification('Erro ao carregar dados: ' + error.message, false);
+            }
+        }
+        
+        // Excluir uma ordem
+        async function deleteOrder(orderId) {
+            if (!confirm('Tem certeza que deseja excluir esta ordem? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+            
+            try {
+                await db.collection("ordens_servico").doc(orderId).delete();
+                showNotification('Ordem excluída com sucesso!', true);
+                loadStatisticsAndOrders();
+            } catch (error) {
+                console.error("Erro ao excluir ordem:", error);
+                showNotification('Erro ao excluir ordem: ' + error.message, false);
+            }
+        }
+        
+        // Verificar conexão com Firebase
+        function checkFirebaseConnection() {
+            // Tentar inicializar o Firebase
+            try {
+                firebase.initializeApp(firebaseConfig);
+                console.log("Firebase inicializado com sucesso!");
+                db = firebase.firestore();
+                analytics = firebase.analytics();
+                
+                // Testar conexão com Firestore
+                const testDocRef = db.collection('connectionTest').doc('status');
+                
+                testDocRef.get()
+                    .then(() => {
+                        updateFirebaseStatus(true, "Firebase conectado com sucesso!");
+                        console.log("Conexão com Firebase estabelecida!");
+                        
+                        // Carregar dados
+                        loadStatisticsAndOrders();
+                    })
+                    .catch(error => {
+                        console.error("Erro ao conectar com Firebase:", error);
+                        updateFirebaseStatus(false, "Erro ao acessar Firestore: " + error.message);
+                        
+                        // Tentar criar o documento de teste
+                        testDocRef.set({
+                            status: "active",
+                            timestamp: new Date()
+                        })
+                        .then(() => {
+                            updateFirebaseStatus(true, "Firestore funcionando após criação de documento");
+                            console.log("Documento de teste criado com sucesso!");
+                            
+                            // Carregar dados
+                            loadStatisticsAndOrders();
+                        })
+                        .catch(createError => {
+                            console.error("Erro ao criar documento de teste:", createError);
+                            updateFirebaseStatus(false, "Erro ao gravar no Firestore: " + createError.message);
+                        });
+                    });
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+                updateFirebaseStatus(false, "Erro na inicialização: " + error.message);
+            }
+        }
+        
+        // Atualizar barra de progresso das perguntas
+        function updateProgressBar() {
+            const progress = (answeredQuestions / 8) * 100;
+            progressBar.style.width = `${progress}%`;
+            questionsCounter.textContent = `${answeredQuestions}/8 perguntas respondidas`;
+        }
+        
+        // Gerenciar sequência de perguntas
+        function setupQuestionSequence() {
+            // Iniciar apenas com a primeira pergunta ativa
+            questions.forEach((question, index) => {
+                if (index === 0) {
+                    question.classList.add('active');
+                } else {
+                    question.classList.remove('active');
+                }
+            });
+            
+            // Adicionar eventos de mudança para cada pergunta
+            questions.forEach((question, index) => {
+                const radios = question.querySelectorAll('input[type="radio"]');
+                
+                radios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        // Marcar pergunta como respondida
+                        question.classList.add('completed');
+                        
+                        // Atualizar contagem
+                        answeredQuestions++;
+                        updateProgressBar();
+                        
+                        // Ativar próxima pergunta
+                        if (index < questions.length - 1) {
+                            questions[index + 1].classList.add('active');
+                            // Rolar para a próxima pergunta
+                            questions[index + 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Verificar se reprovado e mostrar campo de motivo
+        function checkRejectionStatus() {
+            const rejectedRadio = document.getElementById('rejected');
+            if (rejectedRadio.checked) {
+                rejectionReason.classList.add('active');
+                rejectionDetails.required = true;
+            } else {
+                rejectionReason.classList.remove('active');
+                rejectionDetails.required = false;
+            }
+        }
+        
+        // Enviar dados por WhatsApp
+        function sendViaWhatsApp() {
+            // Coletar dados básicos
+            const operator = document.getElementById('operator').value || 'Não informado';
+            const technician = document.getElementById('technician').value || 'Não informado';
+            const client = document.getElementById('client').value || 'Não informado';
+            const serviceType = document.getElementById('service-type').value || 'Não informado';
+            const result = document.querySelector('input[name="validation"]:checked') ? 
+                (document.querySelector('input[name="validation"]:checked').value === 'approved' ? 'Aprovada' : 'Reprovada') : 'Não definido';
+            
+            // Montar mensagem
+            let message = `*Validação de OS - Age Fibra*\n\n`;
+            message += `*Operador:* ${operator}\n`;
+            message += `*Técnico:* ${technician}\n`;
+            message += `*Cliente:* ${client}\n`;
+            message += `*Tipo de OS:* ${serviceType}\n`;
+            message += `*Resultado:* ${result}\n\n`;
+            
+            // Adicionar respostas às perguntas
+            message += `*Respostas:*\n`;
+            
+            // Lista de perguntas
+            const questionTitles = [
+                "Fotos obrigatórias inseridas no Vtasks?",
+                "Vídeo avaliado e de acordo com a qualidade Age Fibra?",
+                "Foram realizados testes em sites?",
+                "Foram realizados testes em aplicativos?",
+                "Cliente foi orientado quanto às redes 2.4 GHz e 5 GHz e cabo?",
+                "Ambiente ficou limpo e organizado?",
+                "Técnico deixou contato corporativo do cliente?",
+                "Todas as dúvidas do cliente foram sanadas?"
+            ];
+            
+            // Coletar respostas
+            questionTitles.forEach((title, index) => {
+                const questionId = `question-${index + 1}`;
+                const questionElement = document.getElementById(questionId);
+                const radios = questionElement.querySelectorAll('input[type="radio"]');
+                const comment = document.getElementById(`${title.split(' ')[0].toLowerCase()}-comment`)?.value || '';
+                
+                let response = 'Não respondido';
+                radios.forEach(radio => {
+                    if (radio.checked) {
+                        response = radio.value === 'sim' ? 'Sim' : 'Não';
+                    }
+                });
+                
+                message += `- *${title}*: ${response}`;
+                if (comment) message += ` (${comment})`;
+                message += `\n`;
+            });
+            
+            // Adicionar observações
+            const observations = document.getElementById('observations').value;
+            if (observations) {
+                message += `\n*Observações:* ${observations}\n`;
+            }
+            
+            // Se reprovado, adicionar motivo
+            if (result === 'Reprovada' && rejectionDetails.value) {
+                message += `\n*Motivo da reprovação:* ${rejectionDetails.value}\n`;
+            }
+            
+            // Codificar mensagem para URL
+            const encodedMessage = encodeURIComponent(message);
+            
+            // Abrir WhatsApp
+            window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar conexão com Firebase
+            checkFirebaseConnection();
+            
+            const operatorSelect = document.getElementById('operator');
+            const supervisorSelect = document.getElementById('supervisor');
+            const technicianSelect = document.getElementById('technician');
+            const clientInput = document.getElementById('client');
+            const serviceTypeSelect = document.getElementById('service-type');
+            
+            // Configurar sequência de perguntas
+            setupQuestionSequence();
+            
+            // Habilitar campo de tipo de serviço
+            function checkServiceTypeEnable() {
+                if (operatorSelect.value && supervisorSelect.value && technicianSelect.value && clientInput.value) {
+                    serviceTypeSelect.disabled = false;
+                } else {
+                    serviceTypeSelect.disabled = true;
+                    serviceTypeSelect.value = '';
+                }
+            }
+            
+            operatorSelect.addEventListener('change', checkServiceTypeEnable);
+            supervisorSelect.addEventListener('change', checkServiceTypeEnable);
+            technicianSelect.addEventListener('change', checkServiceTypeEnable);
+            clientInput.addEventListener('input', checkServiceTypeEnable);
+            
+            // Monitorar seleção de reprovação
+            document.getElementById('rejected').addEventListener('change', checkRejectionStatus);
+            document.getElementById('approved').addEventListener('change', checkRejectionStatus);
+            
+            // Coletar dados do formulário
+            function collectFormData() {
+                return {
+                    operator: operatorSelect.value,
+                    supervisor: supervisorSelect.value,
+                    technician: technicianSelect.value,
+                    client: clientInput.value,
+                    serviceType: serviceTypeSelect.value,
+                    validation: {
+                        photos: document.querySelector('input[name="photos"]:checked')?.value || '',
+                        photosComment: document.getElementById('photos-comment').value,
+                        video: document.querySelector('input[name="video"]:checked')?.value || '',
+                        videoComment: document.getElementById('video-comment').value,
+                        sites: document.querySelector('input[name="sites"]:checked')?.value || '',
+                        sitesComment: document.getElementById('sites-comment').value,
+                        apps: document.querySelector('input[name="apps"]:checked')?.value || '',
+                        appsComment: document.getElementById('apps-comment').value,
+                        orientation: document.querySelector('input[name="orientation"]:checked')?.value || '',
+                        orientationComment: document.getElementById('orientation-comment').value,
+                        clean: document.querySelector('input[name="clean"]:checked')?.value || '',
+                        cleanComment: document.getElementById('clean-comment').value,
+                        contact: document.querySelector('input[name="contact"]:checked')?.value || '',
+                        contactComment: document.getElementById('contact-comment').value,
+                        doubts: document.querySelector('input[name="doubts"]:checked')?.value || '',
+                        doubtsComment: document.getElementById('doubts-comment').value
+                    },
+                    result: document.querySelector('input[name="validation"]:checked')?.value || '',
+                    observations: document.getElementById('observations').value,
+                    rejectionReason: document.querySelector('input[name="validation"]:checked')?.value === 'rejected' ? rejectionDetails.value : '',
+                    timestamp: new Date()
+                };
+            }
+            
+            // Salvar no Firestore
+            async function saveToFirestore(data) {
+                try {
+                    await db.collection("ordens_servico").add(data);
+                    
+                    // Registrar evento no Analytics
+                    analytics.logEvent('os_validated', {
+                        status: data.result,
+                        operator: data.operator,
+                        service_type: data.serviceType
+                    });
+                    
+                    return true;
+                } catch (error) {
+                    console.error("Erro ao salvar no Firestore: ", error);
+                    return false;
+                }
+            }
+            
+            // Evento de envio do formulário
+            submitBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                // Verificar se Firebase está conectado
+                if (!firebaseConnected) {
+                    showNotification('Erro: Sem conexão com Firebase', false);
+                    return;
+                }
+                
+                // Validação básica
+                if (!operatorSelect.value || !supervisorSelect.value || !technicianSelect.value || 
+                    !clientInput.value || !serviceTypeSelect.value) {
+                    showNotification('Preencha todas as informações básicas da OS', false);
+                    return;
+                }
+                
+                // Verificar se todas as perguntas foram respondidas
+                if (answeredQuestions < 8) {
+                    showNotification('Responda todas as perguntas de validação', false);
+                    return;
+                }
+                
+                const validationSelected = document.querySelector('input[name="validation"]:checked');
+                if (!validationSelected) {
+                    showNotification('Selecione o resultado da validação', false);
+                    return;
+                }
+                
+                // Se reprovado, verificar motivo
+                if (validationSelected.value === 'rejected' && !rejectionDetails.value) {
+                    showNotification('Preencha o motivo da reprovação', false);
+                    return;
+                }
+                
+                // Coletar dados
+                const formData = collectFormData();
+                
+                // Mostrar loading no botão
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                submitBtn.disabled = true;
+                
+                // Salvar no Firestore
+                const saved = await saveToFirestore(formData);
+                
+                if (saved) {
+                    showNotification('OS validada com sucesso! Dados salvos no Firebase.', true);
+                    
+                    // Atualizar estatísticas e últimas ordens
+                    await loadStatisticsAndOrders();
+                    
+                    // Resetar formulário (exceto supervisor)
+                    operatorSelect.value = '';
+                    technicianSelect.value = '';
+                    clientInput.value = '';
+                    serviceTypeSelect.value = '';
+                    serviceTypeSelect.disabled = true;
+                    
+                    // Resetar radios
+                    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                    
+                    // Resetar comentários
+                    document.querySelectorAll('.comment-field input').forEach(input => {
+                        input.value = '';
+                    });
+                    
+                    // Resetar validação e observações
+                    document.getElementById('observations').value = '';
+                    rejectionDetails.value = '';
+                    rejectionReason.classList.remove('active');
+                    
+                    // Resetar sequência de perguntas
+                    answeredQuestions = 0;
+                    updateProgressBar();
+                    setupQuestionSequence();
+                } else {
+                    showNotification('Erro ao salvar os dados. Tente novamente.', false);
+                }
+                
+                // Restaurar botão
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+            
+            // Botão para tentar reconexão
+            retryBtn.addEventListener('click', function() {
+                showNotification('Tentando reconectar ao Firebase...', 'info');
+                checkFirebaseConnection();
+            });
+            
+            // Botão para exportar para Excel
+            exportBtn.addEventListener('click', async function() {
+                if (!firebaseConnected) {
+                    showNotification('Erro: Sem conexão com Firebase', false);
+                    return;
+                }
+                
+                if (orders.length === 0) {
+                    showNotification('Nenhuma ordem para exportar', 'info');
+                    return;
+                }
+                
+                // Mostrar loading no botão
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+                exportBtn.disabled = true;
+                
+                try {
+                    // Preparar dados para exportação
+                    const dataForExport = orders.map(order => {
+                        return {
+                            'Data': order.timestamp.toDate().toLocaleString('pt-BR'),
+                            'Operador': order.operator,
+                            'Supervisor': order.supervisor,
+                            'Técnico': order.technician,
+                            'Cliente': order.client,
+                            'Tipo de OS': order.serviceType,
+                            'Fotos': order.validation.photos,
+                            'Comentário Fotos': order.validation.photosComment,
+                            'Vídeo': order.validation.video,
+                            'Comentário Vídeo': order.validation.videoComment,
+                            'Testes em sites': order.validation.sites,
+                            'Comentário Sites': order.validation.sitesComment,
+                            'Testes em apps': order.validation.apps,
+                            'Comentário Apps': order.validation.appsComment,
+                            'Orientação redes': order.validation.orientation,
+                            'Comentário Orientação': order.validation.orientationComment,
+                            'Ambiente limpo': order.validation.clean,
+                            'Comentário Limpeza': order.validation.cleanComment,
+                            'Contato deixado': order.validation.contact,
+                            'Comentário Contato': order.validation.contactComment,
+                            'Dúvidas sanadas': order.validation.doubts,
+                            'Comentário Dúvidas': order.validation.doubtsComment,
+                            'Resultado': order.result === 'approved' ? 'Aprovada' : 'Reprovada',
+                            'Observações': order.observations,
+                            'Motivo Reprovação': order.rejectionReason || 'N/A'
+                        };
+                    });
+                    
+                    // Criar planilha
+                    const worksheet = XLSX.utils.json_to_sheet(dataForExport);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Ordens de Serviço");
+                    
+                    // Gerar arquivo XLSX
+                    XLSX.writeFile(workbook, "ordens_servico_age_fibra.xlsx");
+                    
+                    showNotification('Exportação para Excel concluída com sucesso!', true);
+                } catch (error) {
+                    console.error("Erro ao exportar para Excel:", error);
+                    showNotification('Erro ao exportar para Excel: ' + error.message, false);
+                }
+                
+                // Restaurar botão
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            });
+            
+            // Botão para enviar por WhatsApp
+            whatsappBtn.addEventListener('click', function() {
+                sendViaWhatsApp();
+            });
+        });
+    </script>
+</body>
+</html>
